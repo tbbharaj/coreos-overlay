@@ -49,7 +49,7 @@ CDEPEND="
 	>=net-libs/gnutls-3.4.7[${MULTILIB_USEDEP}]
 	sys-libs/e2fsprogs-libs[${MULTILIB_USEDEP}]
 	sys-libs/libcap[${MULTILIB_USEDEP}]
-	sys-libs/liburing:=[${MULTILIB_USEDEP}]
+	spotlight? ( sys-libs/liburing:=[${MULTILIB_USEDEP}] )
 	sys-libs/ncurses:0=
 	sys-libs/readline:0=
 	sys-libs/zlib[${MULTILIB_USEDEP}]
