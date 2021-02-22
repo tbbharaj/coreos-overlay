@@ -2,27 +2,28 @@
 Description=etcd (System Application Container)
 Documentation=https://github.com/etcd-io/etcd
 Wants=network-online.target network.target
-After=network-online.target
+Requires=docker.service
+After=network-online.target docker.service
 Conflicts=etcd.service
 Conflicts=etcd2.service
 
 [Service]
-Type=notify
+Type=simple
 Restart=on-failure
 RestartSec=10s
 TimeoutStartSec=0
 LimitNOFILE=40000
 
+Environment="ETCD_IMAGE_URL=quay.io/coreos/etcd"
 Environment="ETCD_IMAGE_TAG=@ETCD_IMAGE_TAG@"
 Environment="ETCD_NAME=%m"
 Environment="ETCD_USER=etcd"
 Environment="ETCD_DATA_DIR=/var/lib/etcd"
-Environment="RKT_RUN_ARGS=--uuid-file-save=/var/lib/flatcar/etcd-member-wrapper.uuid"
+Environment="ETCD_SSL_DIR=/etc/ssl/certs"
 
-ExecStartPre=/usr/bin/mkdir --parents /var/lib/flatcar
-ExecStartPre=-/usr/bin/rkt rm --uuid-file=/var/lib/flatcar/etcd-member-wrapper.uuid
 ExecStart=/usr/lib/flatcar/etcd-wrapper $ETCD_OPTS
-ExecStop=-/usr/bin/rkt stop --uuid-file=/var/lib/flatcar/etcd-member-wrapper.uuid
+ExecStop=docker stop etcd-member
+ExecStopPost=docker rm etcd-member
 
 [Install]
 WantedBy=multi-user.target
