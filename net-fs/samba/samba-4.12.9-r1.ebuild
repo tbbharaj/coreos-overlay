@@ -186,7 +186,8 @@ multilib_src_configure() {
 	fi
 
 	# Flatcar: Don't depend on tons of new packages with broken cross-compilation support.
-	bundled_libs=ALL
+	# bundled_libs=ALL
+	bundled_libs="ldb"
 
 	local myconf=(
 		--enable-fhs
