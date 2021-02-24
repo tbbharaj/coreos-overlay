@@ -1,27 +1,27 @@
 [Unit]
 Description=flannel - Network fabric for containers (System Application Container)
 Documentation=https://github.com/coreos/flannel
-After=etcd.service etcd2.service etcd-member.service
-Requires=flannel-docker-opts.service
+After=etcd.service etcd2.service etcd-member.service docker.service flannel-docker-opts.service
+Requires=flannel-docker-opts.service docker.service
 
 [Service]
-Type=notify
+Type=simple
 Restart=always
 RestartSec=10s
 TimeoutStartSec=300
 LimitNOFILE=40000
 LimitNPROC=1048576
 
+Environment="ETCD_IMAGE_URL=quay.io/coreos/flannel"
 Environment="FLANNEL_IMAGE_TAG=@FLANNEL_IMAGE_TAG@"
 Environment="FLANNEL_OPTS=--ip-masq=true"
-Environment="RKT_RUN_ARGS=--uuid-file-save=/var/lib/flatcar/flannel-wrapper.uuid"
+Environment="FLANNEL_CMD=/opt/bin/flanneld"
 EnvironmentFile=-/run/flannel/options.env
 
 ExecStartPre=/sbin/modprobe ip_tables
-ExecStartPre=/usr/bin/mkdir --parents /var/lib/flatcar /run/flannel
-ExecStartPre=-/usr/bin/rkt rm --uuid-file=/var/lib/flatcar/flannel-wrapper.uuid
 ExecStart=/usr/lib/flatcar/flannel-wrapper $FLANNEL_OPTS
-ExecStop=-/usr/bin/rkt stop --uuid-file=/var/lib/flatcar/flannel-wrapper.uuid
+ExecStop=docker stop flannel
+ExecStopPost=docker rm flannel
 
 [Install]
 WantedBy=multi-user.target

@@ -2,20 +2,23 @@
 Description=flannel docker export service - Network fabric for containers (System Application Container)
 Documentation=https://github.com/coreos/flannel
 PartOf=flanneld.service
-Requires=flanneld.service
-After=flanneld.service
-Before=docker.service
+Requires=flanneld.service docker.service
+After=flanneld.service docker.service
 
 [Service]
 Type=oneshot
+RemainAfterExit=true
+Restart=on-failure
+RestartSec=5s
 
+Environment="ETCD_IMAGE_URL=quay.io/coreos/flannel"
 Environment="FLANNEL_IMAGE_TAG=@FLANNEL_IMAGE_TAG@"
-Environment="RKT_RUN_ARGS=--uuid-file-save=/var/lib/flatcar/flannel-wrapper2.uuid"
-Environment="FLANNEL_IMAGE_ARGS=--exec=/opt/bin/mk-docker-opts.sh"
+Environment="FLANNEL_CMD=/opt/bin/mk-docker-opts.sh"
 
-ExecStartPre=-/usr/bin/rkt rm --uuid-file=/var/lib/flatcar/flannel-wrapper2.uuid
 ExecStart=/usr/lib/flatcar/flannel-wrapper -d /run/flannel/flannel_docker_opts.env -i
-ExecStop=-/usr/bin/rkt stop --uuid-file=/var/lib/flatcar/flannel-wrapper2.uuid
+ExecStop=docker stop flannel
+ExecStopPost=docker rm flannel
+ExecStopPost=systemctl restart docker
 
 [Install]
 WantedBy=multi-user.target
