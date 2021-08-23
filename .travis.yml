@@ -5,7 +5,6 @@ language: python
 python:
     - pypy
 arch: arm64-graviton2
-dist: focal
 virt: vm
 group: edge
 # For some reason portage is defaulting to lbzip2/lbunzip2 here and then complaining when they don't
