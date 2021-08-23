@@ -14,7 +14,8 @@ env:
 before_install:
     - sudo apt-get -qq update
     - pip install lxml pyyaml
-
+install: 
+    - ls -lrt
 before_script: ./.travis/setup_repoman.sh
 
 script:
