@@ -4,7 +4,7 @@ sudo: required
 language: python
 python:
     - pypy
-arch: arm64
+#arch: arm64
 # For some reason portage is defaulting to lbzip2/lbunzip2 here and then complaining when they don't
 # exist, so use plain old b{,un}zip2.
 env:
