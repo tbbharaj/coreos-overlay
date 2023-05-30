@@ -3,9 +3,10 @@
 
 EAPI=7
 CROS_WORKON_PROJECT="appc/acbuild"
-CROS_WORKON_REPO="git://github.com"
+CROS_WORKON_REPO="https://github.com"
 CROS_WORKON_LOCALNAME="appc-acbuild"
 COREOS_GO_PACKAGE="github.com/appc/acbuild"
+COREOS_GO_GO111MODULE="off"
 inherit coreos-go toolchain-funcs cros-workon
 
 if [[ "${PV}" == 9999 ]]; then

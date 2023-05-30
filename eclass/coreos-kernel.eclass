@@ -25,7 +25,7 @@ COREOS_SOURCE_VERSION="${PV}${COREOS_SOURCE_REVISION}"
 COREOS_KERNEL_SOURCE_NAME="linux-${PV/_rc/-rc}-coreos${COREOS_SOURCE_REVISION}"
 COREOS_SOURCE_NAME="linux-${PV/_rc/-rc}-flatcar"
 
-[[ ${EAPI} != "5" ]] && die "Only EAPI=5 is supported"
+[[ ${EAPI} != [78] ]] && die "Only EAPI 7 and 8 are supported"
 
 inherit linux-info toolchain-funcs
 
@@ -35,6 +35,7 @@ SLOT="0/${PVR}"
 SRC_URI=""
 IUSE=""
 
+BDEPEND="dev-util/pahole"
 DEPEND="=sys-kernel/coreos-sources-${COREOS_SOURCE_VERSION}"
 
 # Do not analyze or strip installed files

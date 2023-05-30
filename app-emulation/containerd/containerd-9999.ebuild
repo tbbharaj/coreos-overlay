@@ -5,7 +5,7 @@ EAPI=6
 
 GITHUB_URI="github.com/containerd/containerd"
 COREOS_GO_PACKAGE="${GITHUB_URI}"
-COREOS_GO_VERSION="go1.13"
+COREOS_GO_VERSION="go1.19"
 
 if [[ ${PV} == *9999 ]]; then
 	EGIT_REPO_URI="https://${GITHUB_URI}.git"
@@ -13,7 +13,7 @@ if [[ ${PV} == *9999 ]]; then
 else
 	MY_PV="${PV/_rc/-rc.}"
 	EGIT_COMMIT="v${MY_PV}"
-	CONTAINERD_COMMIT="6806845b4f638417933f68721e289c9aeda456b1"
+	CONTAINERD_COMMIT="0b7d72e9a8d8b1b7694cca5b6c0fc6dccf9c4d71"
 	SRC_URI="https://${GITHUB_URI}/archive/${EGIT_COMMIT}.tar.gz -> ${P}.tar.gz"
 	KEYWORDS="amd64 arm64"
 	inherit vcs-snapshot
@@ -29,7 +29,7 @@ SLOT="0"
 IUSE="+btrfs hardened"
 
 DEPEND="btrfs? ( sys-fs/btrfs-progs )"
-RDEPEND="~app-emulation/docker-runc-1.0.0_rc92
+RDEPEND="~app-emulation/docker-runc-1.1.5
 	sys-libs/libseccomp"
 
 S=${WORKDIR}/${P}/src/${COREOS_GO_PACKAGE}
@@ -54,12 +54,16 @@ src_prepare() {
 src_compile() {
 	local options=( $(usex btrfs "" "no_btrfs") )
 	export GOPATH="${WORKDIR}/${P}" # ${PWD}/vendor
+	export GO111MODULE=on
+	export GOFLAGS="-v -x -mod=vendor"
 	LDFLAGS=$(usex hardened '-extldflags -fno-PIC' '') emake BUILDTAGS="${options[*]}"
 }
 
 src_install() {
 	dobin bin/containerd{-shim,-shim-runc-v*,} bin/ctr
 	systemd_newunit "${FILESDIR}/${PN}-1.0.0.service" "${PN}.service"
+	systemd_enable_service multi-user.target "${PN}.service"
 	insinto /usr/share/containerd
 	doins "${FILESDIR}/config.toml"
+	doins "${FILESDIR}/config-cgroupfs.toml"
 }

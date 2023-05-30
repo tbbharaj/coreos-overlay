@@ -1,7 +1,7 @@
 # Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=2
+EAPI=7
 
 DESCRIPTION="CoreOS (meta package)"
 HOMEPAGE="http://coreos.com"
@@ -65,49 +65,50 @@ IUSE="selinux"
 
 RDEPEND=">=sys-apps/baselayout-3.0.0"
 
-# Optionally enable SELinux and pull in policy for containers
+# Optionally enable SELinux for dbus and systemd (but always install packages and pull in the SELinux policy for containers)
 RDEPEND="${RDEPEND}
 	sys-apps/dbus[selinux?]
 	sys-apps/systemd[selinux?]
-	selinux? (
-		sec-policy/selinux-virt
-	)"
+	"
 
 # Only applicable or available on amd64
 RDEPEND="${RDEPEND}
 	amd64? (
-		app-admin/adcli
-		app-crypt/go-tspi
 		app-emulation/xenserver-pv-version
 		app-emulation/xenstore
-		net-fs/cifs-utils
-		sys-auth/realmd
-		sys-auth/sssd
-		x11-drivers/nvidia-metadata
 	)"
 
+# sys-devel/gettext: it embeds 'envsubst' binary which is useful for simple file templating.
 RDEPEND="${RDEPEND}
 	app-admin/etcd-wrapper
 	app-admin/flannel-wrapper
-	app-admin/kubelet-wrapper
 	app-admin/locksmith
 	app-admin/mayday
 	app-admin/sdnotify-proxy
 	app-admin/sudo
 	app-admin/toolbox
 	app-arch/gzip
+	app-arch/bzip2
+	app-arch/lbzip2
+	app-arch/lz4
+	app-arch/pigz
+	app-arch/xz-utils
+	app-arch/zstd
 	app-arch/tar
 	app-arch/torcx
 	app-arch/unzip
 	app-arch/zip
+	app-arch/ncompress
+	app-crypt/adcli
 	app-crypt/gnupg
+	app-crypt/go-tspi
 	app-crypt/tpmpolicy
 	app-editors/vim
-	app-emulation/rkt
 	app-emulation/actool
 	app-emulation/cri-tools
 	app-misc/ca-certificates
 	app-misc/jq
+	app-misc/pax-utils
 	app-shells/bash
 	coreos-base/afterburn
 	coreos-base/coreos-cloudinit
@@ -115,10 +116,15 @@ RDEPEND="${RDEPEND}
 	coreos-base/update-ssh-keys
 	coreos-base/update_engine
 	dev-db/etcdctl
+	dev-libs/libsodium
+	dev-libs/openssl
+	dev-util/bpftool
+	dev-util/bsdiff
 	dev-util/strace
 	dev-vcs/git
 	net-analyzer/nmap
 	net-analyzer/tcpdump
+	net-analyzer/traceroute
 	net-dns/bind-tools
 	net-firewall/conntrack-tools
 	net-firewall/ebtables
@@ -126,7 +132,9 @@ RDEPEND="${RDEPEND}
 	net-firewall/iptables
 	net-firewall/nftables
 	net-fs/nfs-utils
+	net-fs/cifs-utils
 	net-misc/bridge-utils
+	net-misc/curl
 	net-misc/iputils
 	net-misc/ntp
 	net-misc/rsync
@@ -134,32 +142,51 @@ RDEPEND="${RDEPEND}
 	net-misc/wget
 	net-misc/whois
 	net-vpn/wireguard-tools
+	sec-policy/selinux-virt
+	sec-policy/selinux-base
+	sec-policy/selinux-base-policy
+	sec-policy/selinux-unconfined
+	sys-apps/acl
+	sys-apps/attr
 	sys-apps/coreutils
+	sys-apps/checkpolicy
 	sys-apps/dbus
 	sys-apps/diffutils
 	sys-apps/ethtool
 	sys-apps/findutils
 	sys-apps/gawk
+	sys-apps/gptfdisk
 	sys-apps/grep
+	sys-apps/ignition
 	sys-apps/iproute2
 	sys-apps/kexec-tools
+	sys-apps/keyutils
 	sys-apps/less
 	sys-apps/lshw
 	sys-apps/net-tools
 	sys-apps/nvme-cli
 	sys-apps/pciutils
-	sys-apps/rng-tools
+	sys-apps/policycoreutils
 	sys-apps/sed
 	sys-apps/seismograph
+	sys-apps/semodule-utils
 	sys-apps/shadow
 	sys-apps/usbutils
 	sys-apps/util-linux
 	sys-apps/which
+	sys-auth/realmd
+	sys-auth/sssd
 	sys-block/open-iscsi
+	sys-block/parted
+	sys-boot/efibootmgr
 	sys-cluster/ipvsadm
+	sys-devel/gettext
 	sys-fs/btrfs-progs
+	sys-fs/cryptsetup
 	sys-fs/dosfstools
 	sys-fs/e2fsprogs
+	sys-fs/lsscsi
+	sys-fs/lvm2
 	sys-fs/mdadm
 	sys-fs/multipath-tools
 	sys-fs/quota
@@ -169,13 +196,16 @@ RDEPEND="${RDEPEND}
 	sys-libs/glibc
 	sys-libs/nss-usrfiles
 	sys-libs/timezone-data
+	sys-power/acpid
 	sys-process/lsof
 	sys-process/procps
+	x11-drivers/nvidia-metadata
 "
 
 # OEM specific bits that need to go in USR
 RDEPEND+="
 	amd64? (
+		app-emulation/qemu-guest-agent
 		sys-auth/google-oslogin
 	)
 "

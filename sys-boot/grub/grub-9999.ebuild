@@ -1,10 +1,10 @@
 # Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=7
 
-CROS_WORKON_PROJECT="flatcar-linux/grub"
-CROS_WORKON_REPO="git://github.com"
+CROS_WORKON_PROJECT="flatcar/grub"
+CROS_WORKON_REPO="https://github.com"
 GRUB_AUTOGEN=1  # We start from Git, so always autogen.
 
 if [[ ${PV} == 9999 ]]; then
@@ -16,12 +16,12 @@ fi
 inherit cros-workon
 
 if [[ -n ${GRUB_AUTOGEN} ]]; then
-	PYTHON_COMPAT=( python{2_7,3_5,3_6,3_7} )
+	PYTHON_COMPAT=( python3_{6..10} )
 	WANT_LIBTOOL=none
 	inherit autotools python-any-r1
 fi
 
-inherit autotools bash-completion-r1 flag-o-matic multibuild pax-utils toolchain-funcs versionator
+inherit autotools bash-completion-r1 flag-o-matic multibuild pax-utils toolchain-funcs
 DEJAVU=dejavu-sans-ttf-2.37
 UNIFONT=unifont-9.0.06
 SRC_URI+=" fonts? ( mirror://gnu/unifont/${UNIFONT}/${UNIFONT}.pcf.gz )
@@ -111,12 +111,19 @@ QA_EXECSTACK="usr/bin/grub*-emu* usr/lib/grub/*"
 QA_WX_LOAD="usr/lib/grub/*"
 QA_MULTILIB_PATHS="usr/lib/grub/.*"
 
+PATCHES=(
+	"${FILESDIR}/${PN}-2.02-binutils-2.36-x86-used-note.patch"
+	"${FILESDIR}/${PN}-2.02-configure-specify-gettext-version.patch"
+)
+
 src_unpack() {
 	cros-workon_src_unpack
 	default
 }
 
 src_prepare() {
+	default
+
 	sed -i -e /autoreconf/d autogen.sh || die
 
 	if use multislot; then
@@ -132,12 +139,12 @@ src_prepare() {
 		tests/util/grub-fs-tester.in \
 		|| die
 
-	eapply_user
-
 	if [[ -n ${GRUB_AUTOGEN} ]]; then
 		python_setup
 		bash autogen.sh || die
-		autopoint() { :; }
+		# Flatcar: Force the use of newer gettext infra to
+		# avoid build issues with infra version mismatches.
+		eautopoint --force
 		eautoreconf
 	fi
 }

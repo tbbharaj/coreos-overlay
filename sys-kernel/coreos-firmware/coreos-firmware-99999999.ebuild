@@ -4,8 +4,8 @@
 EAPI=7
 
 # Tell linux-info where to find the kernel source/build
-KERNEL_DIR="${SYSROOT}/usr/src/linux"
-KBUILD_OUTPUT="${SYSROOT}/var/cache/portage/sys-kernel/coreos-kernel"
+KERNEL_DIR="${SYSROOT%/}/usr/src/linux"
+KBUILD_OUTPUT="${SYSROOT%/}/var/cache/portage/sys-kernel/coreos-kernel"
 inherit linux-info savedconfig
 
 # In case this is a real snapshot, fill in commit below.
@@ -59,6 +59,9 @@ RESTRICT="binchecks strip"
 # source name is linux-firmware, not coreos-firmware
 S="${WORKDIR}/linux-firmware-${PV}"
 
+CXGB_VERSION="1.27.1.0"
+ICE_DDP_VERSION="1.3.30.0"
+
 src_unpack() {
 	if [[ ${PV} == 99999999* ]]; then
 		git-r3_src_unpack
@@ -75,9 +78,16 @@ src_unpack() {
 		# way of installing the firmware files, so we need to
 		# create the symlinks to avoid failures at the
 		# firmware scanning stage.
-		ln -sfn t4fw-1.24.17.0.bin linux-firmware-${PV}/cxgb4/t4fw.bin
-		ln -sfn t5fw-1.24.17.0.bin linux-firmware-${PV}/cxgb4/t5fw.bin
-		ln -sfn t6fw-1.24.17.0.bin linux-firmware-${PV}/cxgb4/t6fw.bin
+		ln -sfn t4fw-${CXGB_VERSION}.bin linux-firmware-${PV}/cxgb4/t4fw.bin
+		ln -sfn t5fw-${CXGB_VERSION}.bin linux-firmware-${PV}/cxgb4/t5fw.bin
+		ln -sfn t6fw-${CXGB_VERSION}.bin linux-firmware-${PV}/cxgb4/t6fw.bin
+
+		# Upstream linux-firmware tarball does not contain
+		# a correct symlink to intel/ice/ddp/ice-1.3.28.0.pkg,
+		# but "modinfo ice.ko" shows it requires ice.pkg.
+		# So we need to create the symlink to avoid failures at the
+		# firmware scanning stage.
+		ln -sfn ice-${ICE_DDP_VERSION}.pkg linux-firmware-${PV}/intel/ice/ddp/ice.pkg
 
 		# The xhci-pci.ko kernel module started requiring a
 		# renesas_usb_fw.mem firmware file, but this file is
@@ -93,13 +103,13 @@ src_unpack() {
 }
 
 src_prepare() {
-	local kernel_mods="${ROOT}/lib/modules/${KV_FULL}"
+	local kernel_mods="${SYSROOT%/}/lib/modules/${KV_FULL}"
 
 	# Fail if any firmware is missing.
 	einfo "Scanning for files required by ${KV_FULL}"
 	echo -n > "${T}/firmware-scan"
 	local kofile fwfile failed
-	for kofile in $(find "${kernel_mods}" -name '*.ko'); do
+	for kofile in $(find "${kernel_mods}" -name '*.ko' -o -name '*.ko.xz'); do
 		for fwfile in $(modinfo --field firmware "${kofile}"); do
 			if [[ ! -e "${fwfile}" ]]; then
 				eerror "Missing firmware: ${fwfile} (${kofile##*/})"

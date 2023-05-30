@@ -30,11 +30,11 @@
 #
 # Example:
 # @CODE
-# COREOS_GO_VERSION=go1.15
+# COREOS_GO_VERSION=go1.19
 # @CODE
 
 case "${EAPI:-0}" in
-	5|6|7) ;;
+	5|6|7|8) ;;
 	*) die "Unsupported EAPI=${EAPI} for ${ECLASS}"
 esac
 
@@ -56,7 +56,7 @@ go_build() {
 
 	${EGO} build -v \
 		-p "$(makeopts_jobs)" \
-		-ldflags "${GO_LDFLAGS} -extldflags '${LDFLAGS}'" \
+		-ldflags "${GO_LDFLAGS} -s -w -extldflags '${LDFLAGS}'" \
 		${COREOS_GO_MOD:+-mod "${COREOS_GO_MOD}"} \
 		-o "${GOBIN}/${binary_name}" \
 		"${package_name}"
@@ -68,7 +68,7 @@ go_build() {
 
 coreos-go_src_prepare() {
 	debug-print-function ${FUNCNAME} "$@"
-	has ${EAPI:-0} 6 7 && default
+	has ${EAPI:-0} 6 7 8 && default
 
 	go_export
 	export GOPATH="${WORKDIR}/gopath"

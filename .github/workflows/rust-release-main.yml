@@ -2,12 +2,13 @@ name: Get the latest Rust release for main
 on:
   schedule:
     - cron:  '20 7 * * 2'
+  workflow_dispatch:
 
 jobs:
   get-rust-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch latest Rust release
@@ -16,8 +17,8 @@ jobs:
           git clone --depth=1 --no-checkout https://github.com/rust-lang/rust
           versionMain=$(git -C rust ls-remote --tags origin | cut -f2 | sed -n "/refs\/tags\/1\.[0-9]*\.[0-9]*$/s/^refs\/tags\///p" | sort -ruV | head -n1)
           rm -rf rust
-          echo ::set-output name=VERSION_MAIN::$(echo ${versionMain})
-          echo ::set-output name=BASE_BRANCH_MAIN::main
+          echo "VERSION_MAIN=${versionMain}" >>"${GITHUB_OUTPUT}"
+          echo "BASE_BRANCH_MAIN=main" >>"${GITHUB_OUTPUT}"
       - name: Set up Flatcar SDK
         id: setup-flatcar-sdk
         run: .github/workflows/setup-flatcar-sdk.sh
@@ -28,10 +29,12 @@ jobs:
           BASE_BRANCH: ${{ steps.fetch-latest-release.outputs.BASE_BRANCH_MAIN }}
           PATH: ${{ steps.setup-flatcar-sdk.outputs.path }}
           VERSION_NEW: ${{ steps.fetch-latest-release.outputs.VERSION_MAIN }}
+          PACKAGES_CONTAINER: ${{ steps.setup-flatcar-sdk.outputs.PACKAGES_CONTAINER }}
+          SDK_NAME: ${{ steps.setup-flatcar-sdk.outputs.SDK_NAME }}
         run: .github/workflows/rust-apply-patch.sh
       - name: Create pull request for main
         id: create-pull-request
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         if: steps.apply-patch-main.outputs.UPDATE_NEEDED == 1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -39,18 +42,8 @@ jobs:
           branch: rust-${{ steps.fetch-latest-release.outputs.VERSION_MAIN }}-main
           author: Flatcar Buildbot <buildbot@flatcar-linux.org>
           committer: Flatcar Buildbot <buildbot@flatcar-linux.org>
-          title: Upgrade dev-lang/rust in main from ${{ steps.apply-patch-main.outputs.VERSION_OLD }} to ${{ steps.fetch-latest-release.outputs.VERSION_MAIN }}
-          commit-message: Upgrade dev-lang/rust in main from ${{ steps.apply-patch-main.outputs.VERSION_OLD }} to ${{ steps.fetch-latest-release.outputs.VERSION_MAIN }}
+          title: Upgrade dev-lang/rust and virtual/rust in main from ${{ steps.apply-patch-main.outputs.VERSION_OLD }} to ${{ steps.fetch-latest-release.outputs.VERSION_MAIN }}
+          commit-message: Upgrade dev-lang/rust and virtual rust in main from ${{ steps.apply-patch-main.outputs.VERSION_OLD }} to ${{ steps.fetch-latest-release.outputs.VERSION_MAIN }}
           body: |
-            Upgrade dev-lang/rust in main from ${{ steps.apply-patch-main.outputs.VERSION_OLD }} to ${{ steps.fetch-latest-release.outputs.VERSION_MAIN }}
-
-            This PR should be merged together with a corresponding PR in portage-stable for `virtual/rust` ${{ steps.fetch-latest-release.outputs.VERSION_MAIN }}.
+            Upgrade dev-lang/rust and virtual/rust in main from ${{ steps.apply-patch-main.outputs.VERSION_OLD }} to ${{ steps.fetch-latest-release.outputs.VERSION_MAIN }}
           labels: main
-      - name: Send repository dispatch to portage-stable
-        uses: peter-evans/repository-dispatch@v1.0.0
-        if: steps.apply-patch-main.outputs.UPDATE_NEEDED == 1
-        with:
-          token: ${{ secrets.FLATCAR_PORTAGE_STABLE_ACCESS_TOKEN }}
-          repository: flatcar-linux/portage-stable
-          event-type: rust-pull-request-main
-          client-payload: '{"coreos-overlay-pull-request-number": "${{ steps.create-pull-request.outputs.pull-request-number }}"}'

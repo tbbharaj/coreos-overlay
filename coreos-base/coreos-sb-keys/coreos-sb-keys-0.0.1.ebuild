@@ -1,14 +1,14 @@
 # Copyright (c) 2015 CoreOS Inc.
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=5
+EAPI=7
 
 DESCRIPTION="CoreOS Secure Boot keys"
 HOMEPAGE=""
 SRC_URI=""
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="amd64 arm x86"
+KEYWORDS="amd64 arm arm64 x86"
 IUSE=""
 
 S="${WORKDIR}"

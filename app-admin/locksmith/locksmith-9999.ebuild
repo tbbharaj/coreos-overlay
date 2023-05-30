@@ -2,21 +2,21 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-CROS_WORKON_PROJECT="flatcar-linux/locksmith"
+CROS_WORKON_PROJECT="flatcar/locksmith"
 CROS_WORKON_LOCALNAME="locksmith"
-CROS_WORKON_REPO="git://github.com"
-COREOS_GO_PACKAGE="github.com/flatcar-linux/locksmith"
+CROS_WORKON_REPO="https://github.com"
+COREOS_GO_PACKAGE="github.com/flatcar/locksmith"
 inherit cros-workon systemd coreos-go
 
 if [[ "${PV}" == 9999 ]]; then
 	KEYWORDS="~amd64 ~arm64"
 else
-	CROS_WORKON_COMMIT="085ff774311dba979a53d049f6a776e156224437" # flatcar-master
+	CROS_WORKON_COMMIT="c4cca93a15c7b7fd175e6687a83fc2725029a17a" # flatcar-master
 	KEYWORDS="amd64 arm64"
 fi
 
 DESCRIPTION="locksmith"
-HOMEPAGE="https://github.com/coreos/locksmith"
+HOMEPAGE="https://github.com/flatcar/locksmith"
 SRC_URI=""
 
 LICENSE="Apache-2.0"

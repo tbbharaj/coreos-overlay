@@ -1,9 +1,9 @@
 # Copyright 2015 CoreOS, Inc.
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=5
-CROS_WORKON_PROJECT="flatcar-linux/shim"
-CROS_WORKON_REPO="git://github.com"
+EAPI=7
+CROS_WORKON_PROJECT="flatcar/shim"
+CROS_WORKON_REPO="https://github.com"
 
 if [[ "${PV}" == 9999 ]]; then
 	KEYWORDS="~amd64 ~arm64"
@@ -32,8 +32,8 @@ src_unpack() {
 src_compile() {
 	emake \
 		CROSS_COMPILE="${CHOST}-" \
-		EFI_INCLUDE="${ROOT}"usr/include/efi \
-		EFI_PATH="${ROOT}"usr/$(get_libdir) \
+		EFI_INCLUDE="${SYSROOT%/}"/usr/include/efi \
+		EFI_PATH="${SYSROOT%/}"/usr/$(get_libdir) \
 		shim.efi || die
 }
 

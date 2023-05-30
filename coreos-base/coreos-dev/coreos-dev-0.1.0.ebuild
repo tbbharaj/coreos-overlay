@@ -1,7 +1,7 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI="4"
+EAPI=7
 
 DESCRIPTION="CoreOS developer images and containers (meta package)"
 HOMEPAGE="http://coreos.com"
@@ -18,13 +18,13 @@ KEYWORDS="amd64 arm arm64 x86"
 RDEPEND="
 	app-portage/gentoolkit
 	coreos-base/coreos
-	coreos-base/coreos-experimental
-	coreos-base/gmerge
-	coreos-devel/mantle
+	coreos-base/emerge-gitclone
 	dev-lang/python
+	dev-util/pahole
 	dev-util/strace
 	dev-vcs/repo
 	net-analyzer/netperf
+	net-analyzer/traceroute
 	net-dialup/minicom
 	net-misc/iperf
 	net-misc/iputils
@@ -43,6 +43,7 @@ RDEPEND="
 	sys-devel/gcc
 	sys-devel/gdb
 	sys-fs/lvm2
+	sys-fs/squashfs-tools
 	sys-process/procps
 	sys-process/psmisc
 	"

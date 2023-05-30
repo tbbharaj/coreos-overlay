@@ -6,6 +6,8 @@ UPDATE_NEEDED=1
 
 . .github/workflows/common.sh
 
+prepare_git_repo
+
 if ! checkout_branches "containerd-${VERSION_NEW}-${TARGET}"; then
   UPDATE_NEEDED=0
   exit 0
@@ -24,7 +26,7 @@ DOCKER_VERSION=$(sed -n "s/^DIST docker-\([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p" app-e
 
 # we need to update not only the main ebuild file, but also its CONTAINERD_COMMIT,
 # which needs to point to COMMIT_HASH that matches with $VERSION_NEW from upstream containerd.
-containerdEbuildOldSymlink=$(ls -1 app-emulation/containerd/containerd-${VERSION_OLD}*.ebuild | sort -ruV | head -n1)
+containerdEbuildOldSymlink=$(get_ebuild_filename "app-emulation" "containerd" "${VERSION_OLD}")
 containerdEbuildNewSymlink="app-emulation/containerd/containerd-${VERSION_NEW}.ebuild"
 containerdEbuildMain="app-emulation/containerd/containerd-9999.ebuild"
 git mv ${containerdEbuildOldSymlink} ${containerdEbuildNewSymlink}
@@ -38,9 +40,13 @@ sed -i "s/containerd-${VERSION_OLD}/containerd-${VERSION_NEW}/g" ${torcxEbuildFi
 
 popd >/dev/null || exit
 
+URL="https://github.com/containerd/containerd/releases/tag/v${VERSION_NEW}"
+
+generate_update_changelog 'containerd' "${VERSION_NEW}" "${URL}" 'containerd'
+
 generate_patches app-emulation containerd Containerd
 
 apply_patches
 
-echo ::set-output name=VERSION_OLD::"${VERSION_OLD}"
-echo ::set-output name=UPDATE_NEEDED::"${UPDATE_NEEDED}"
+echo "VERSION_OLD=${VERSION_OLD}" >>"${GITHUB_OUTPUT}"
+echo "UPDATE_NEEDED=${UPDATE_NEEDED}" >>"${GITHUB_OUTPUT}"

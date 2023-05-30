@@ -1,19 +1,20 @@
 # Copyright 1999-2013 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI="5"
-CROS_WORKON_PROJECT="flatcar-linux/baselayout"
+EAPI=7
+CROS_WORKON_PROJECT="flatcar/baselayout"
 CROS_WORKON_LOCALNAME="baselayout"
-CROS_WORKON_REPO="git://github.com"
+CROS_WORKON_REPO="https://github.com"
 
 if [[ "${PV}" == 9999 ]]; then
 	KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 else
-	CROS_WORKON_COMMIT="8e4cd3c28786a03cdbfb9ffd73552b1a0714aa8b" # flatcar-master
+	CROS_WORKON_COMMIT="f55f20a58997b0cdf7d85e90d1a7050a5e19c7ae" # flatcar-master
 	KEYWORDS="amd64 arm arm64 x86"
 fi
 
-inherit cros-workon eutils multilib systemd
+TMPFILES_OPTIONAL=1
+inherit cros-workon multilib systemd tmpfiles
 
 DESCRIPTION="Filesystem baselayout for CoreOS"
 HOMEPAGE="http://www.coreos.com/"
@@ -41,7 +42,6 @@ MOUNT_POINTS=(
 	/sys
 )
 
-declare -A LIB_SYMS		# list of /lib->lib64 symlinks
 declare -A USR_SYMS		# list of /foo->usr/foo symlinks
 declare -a BASE_DIRS	# list of absolute paths that should be directories
 
@@ -56,24 +56,16 @@ check_sym() {
 }
 
 pkg_setup() {
-	local libdirs=$(get_all_libdirs) def_libdir=$(get_abi_LIBDIR $DEFAULT_ABI)
+	local libdirs=$(get_all_libdirs)
 
-	if [[ -z "${libdirs}" || -z "${def_libdir}" ]]; then
+	if [[ -z "${libdirs}" ]]; then
 		die "your DEFAULT_ABI=$DEFAULT_ABI appears to be invalid"
 	fi
 
 	# figure out which paths should be symlinks and which should be directories
 	local d
 	for d in bin sbin ${libdirs} ; do
-		if [[ "${SYMLINK_LIB}" == "yes" && "${d}" == "lib" ]] ; then
-			if use symlink-usr; then
-				USR_SYMS["/lib"]="usr/${def_libdir}"
-			else
-				LIB_SYMS["/lib"]="${def_libdir}"
-			fi
-			LIB_SYMS["/usr/lib"]="${def_libdir}"
-			LIB_SYMS["/usr/local/lib"]="${def_libdir}"
-		elif use symlink-usr; then
+		if use symlink-usr; then
 			USR_SYMS["/$d"]="usr/$d"
 			BASE_DIRS+=( "/usr/$d" "/usr/local/$d" )
 		else
@@ -83,9 +75,6 @@ pkg_setup() {
 
 	# make sure any pre-existing symlinks map to the expected locations.
 	local sym
-	for sym in "${!LIB_SYMS[@]}" ; do
-		check_sym "${sym}" "${LIB_SYMS[$sym]}"
-	done
 	if use symlink-usr; then
 		for sym in "${!USR_SYMS[@]}" ; do
 			check_sym "${sym}" "${USR_SYMS[$sym]}"
@@ -101,18 +90,13 @@ src_compile() {
 		local tmpfiles="${T}/baselayout-usr.conf"
 		echo -n > ${tmpfiles} || die
 		for sym in "${!USR_SYMS[@]}" ; do
-			echo "L	${sym}	-	-	-	-	${USR_SYMS[$sym]}" >> ${tmpfiles}
+			echo "L+	${sym}	-	-	-	-	${USR_SYMS[$sym]}" >> ${tmpfiles}
 		done
 	fi
 }
 
 src_install() {
-	# lib symlinks must be in place before make install
 	dodir "${BASE_DIRS[@]}"
-	local sym
-	for sym in "${!LIB_SYMS[@]}" ; do
-		dosym "${LIB_SYMS[$sym]}" "${sym}"
-	done
 
 	if use cros_host; then
 		# Since later systemd-tmpfiles --root is used only users from
@@ -131,7 +115,7 @@ src_install() {
 	fi
 
 	if use symlink-usr; then
-		systemd_dotmpfilesd "${T}/baselayout-usr.conf"
+		dotmpfiles "${T}/baselayout-usr.conf"
 		systemd-tmpfiles --root="${D}" --create
 	fi
 
@@ -148,11 +132,6 @@ src_install() {
 	done
 
 	doenvd "env.d/99flatcar_ldpath"
-
-	# Add /sbin:/bin into the PATH when they aren't links into /usr.
-	if ! use symlink-usr; then
-		echo ROOTPATH=/sbin:/bin > "${D}"/etc/env.d/99flatcar_bin || die
-	fi
 
 	# handle multilib paths.  do it here because we want this behavior
 	# regardless of the C library that you're using.  we do explicitly
@@ -220,10 +199,6 @@ pkg_postinst() {
 	for dir in "${BASE_DIRS[@]}"; do
 		mkdir -p "${ROOT}/usr/lib/debug/${dir}"
 	done
-	local sym
-	for sym in "${!LIB_SYMS[@]}" ; do
-		ln -sfT "${LIB_SYMS[$sym]}" "${ROOT}/usr/lib/debug/${sym}"
-	done
 	if use symlink-usr; then
 		for sym in "${!USR_SYMS[@]}" ; do
 			ln -sfT "${USR_SYMS[$sym]}" "${ROOT}/usr/lib/debug/${sym}"
@@ -240,5 +215,16 @@ pkg_postinst() {
 		elog "Creating /etc/init.d/functions.sh symlink..."
 		mkdir -p "${ROOT}/etc/init.d"
 		ln -sf "${func}" "${ROOT}/etc/init.d/functions.sh"
+	fi
+	# install compat symlinks in production images, not in SDK
+	# os-release symlink is set up in scripts
+	if ! use cros_host; then
+		local compat libdir
+		for compat in systemd kernel modprobe.d pam pam.d sysctl.d udev ; do
+			for libdir in $(get_all_libdirs) ; do
+				if [[ "${libdir}" == 'lib' ]]; then continue; fi
+				ln -sfT "../lib/${compat}" "${ROOT}/usr/${libdir}/${compat}"
+			done
+		done
 	fi
 }

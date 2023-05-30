@@ -1,14 +1,14 @@
 # Copyright (c) 2009 The Chromium OS Authors. All rights reserved.
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=2
+EAPI=7
 
 DESCRIPTION="List of packages that are needed on the buildhost (meta package)"
 HOMEPAGE="http://src.chromium.org"
 
 LICENSE="GPL-2"
 SLOT="0"
-KEYWORDS="amd64 x86"
+KEYWORDS="amd64 arm64 x86"
 IUSE=""
 
 # Needed to run setup crossdev, run build scripts, and make a bootable image.
@@ -18,9 +18,7 @@ RDEPEND="${RDEPEND}
 	app-admin/sudo
 	sys-apps/less
 	dev-embedded/u-boot-tools
-	dev-util/ccache
-	dev-util/crosutils
-	sys-boot/syslinux
+	!arm64? ( sys-boot/syslinux )
 	sys-devel/crossdev
 	sys-devel/sysroot-wrappers
 	sys-fs/dosfstools
@@ -34,19 +32,17 @@ RDEPEND="${RDEPEND}
 	app-arch/sharutils
 	app-arch/unzip
 	app-emulation/qemu
-	coreos-base/cros-devutils[cros_host]
-	=dev-lang/python-2*
-	dev-python/setuptools
-	dev-lang/nasm
-	dev-lang/swig
-	dev-lang/yasm
-	dev-lang/go:1.7
-	dev-lang/go:1.8
-	dev-lang/go:1.12
-	dev-lang/go:1.13
-	dev-lang/go:1.15
+	app-text/asciidoc
+	app-text/xmlto
 	dev-lang/go-bootstrap
+	dev-lang/go:1.12
+	dev-lang/go:1.18
+	dev-lang/go:1.19
+	dev-lang/nasm
+	=dev-lang/python-3*
+	dev-lang/swig
 	dev-lang/tcl
+	dev-lang/yasm
 	dev-libs/dbus-glib
 	>=dev-libs/glib-2.26.1
 	dev-libs/libgcrypt
@@ -54,25 +50,23 @@ RDEPEND="${RDEPEND}
 	dev-libs/libyaml
 	dev-libs/nspr
 	dev-libs/protobuf
-	dev-python/ctypesgen
-	dev-python/mako
-	sys-devel/bc
+	dev-python/flit_core
+	dev-python/gpep517
+	dev-python/setuptools
+	dev-python/wheel
 	dev-util/gdbus-codegen
 	dev-util/gperf
 	>=dev-util/gtk-doc-am-1.13
-	>=dev-util/intltool-0.30
-	dev-util/scons
+	dev-util/patchutils
 	>=dev-vcs/git-1.7.2
-	net-misc/google-cloud-sdk
-	sys-apps/usbutils
-	sys-apps/systemd
-	sys-libs/nss-usrfiles
-	sys-power/iasl
-	virtual/udev
-	app-text/asciidoc
-	app-text/xmlto
-	sys-apps/gptfdisk
 	net-libs/libtirpc
+	amd64? ( net-misc/google-cloud-sdk )
+	sys-apps/gptfdisk
+	sys-apps/systemd
+	sys-apps/usbutils
+	sys-devel/bc
+	sys-libs/nss-usrfiles
+	virtual/udev
 	"
 
 # Host dependencies that create usernames/groups we need to pull over to target.
@@ -88,6 +82,7 @@ RDEPEND="${RDEPEND}
 # Useful utilities for developers.
 RDEPEND="${RDEPEND}
 	app-arch/zip
+	app-containers/syft
 	app-doc/eclass-manpages
 	app-portage/gentoolkit
 	app-portage/portage-utils
@@ -108,10 +103,9 @@ RDEPEND="${RDEPEND}
 	coreos-base/update_engine
 	"
 
-# Host dependencies for running pylint within the chroot
-# TODO: move to sdk-extras
+# Host dependencies for python
 RDEPEND="${RDEPEND}
-	dev-python/pylint
+	dev-python/docutils
 	"
 
 # Host dependencies to scp binaries from the binary component server
@@ -124,7 +118,7 @@ RDEPEND="${RDEPEND}
 
 # Host dependencies for building ISOs
 RDEPEND="${RDEPEND}
-	virtual/cdrtools
+	app-cdr/cdrtools
 	"
 
 # Uninstall these packages.

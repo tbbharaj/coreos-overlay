@@ -6,6 +6,8 @@ UPDATE_NEEDED=1
 
 . .github/workflows/common.sh
 
+prepare_git_repo
+
 if ! checkout_branches "${VERSION_NEW}-${TARGET}"; then
   UPDATE_NEEDED=0
   exit 0
@@ -21,13 +23,18 @@ if [[ "${VERSION_NEW}" = "${VERSION_OLD}" ]]; then
   exit 0
 fi
 
-git mv $(ls -1 sys-kernel/coreos-firmware/coreos-firmware-${VERSION_OLD}*.ebuild | sort -ruV | head -n1) "sys-kernel/coreos-firmware/coreos-firmware-${VERSION_NEW}.ebuild"
+EBUILD_FILENAME=$(get_ebuild_filename "sys-kernel" "coreos-firmware" "${VERSION_OLD}")
+git mv "${EBUILD_FILENAME}" "sys-kernel/coreos-firmware/coreos-firmware-${VERSION_NEW}.ebuild"
 
 popd >/dev/null || exit
+
+URL="https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/tag/?h=${VERSION_NEW}"
+
+generate_update_changelog 'Linux Firmware' "${VERSION_NEW}" "${URL}" 'linux-firmware'
 
 generate_patches sys-kernel coreos-firmware "Linux Firmware"
 
 apply_patches
 
-echo ::set-output name=VERSION_OLD::"${VERSION_OLD}"
-echo ::set-output name=UPDATE_NEEDED::"${UPDATE_NEEDED}"
+echo "VERSION_OLD=${VERSION_OLD}" >>"${GITHUB_OUTPUT}"
+echo "UPDATE_NEEDED=${UPDATE_NEEDED}" >>"${GITHUB_OUTPUT}"

@@ -6,50 +6,36 @@
 app-arch/tar		minimal
 app-crypt/mit-krb5	-keyutils
 dev-libs/dbus-glib	tools
-dev-libs/protobuf 	-python
 dev-libs/libxml2	-python
-dev-util/perf		tui -doc
-dev-vcs/git		webdav curl bash-completion
-# We don't want any driver/hw rendering on the host
-net-misc/curl		kerberos threads
-net-misc/iputils	arping tracepath traceroute
+dev-libs/libxslt	-python
+dev-util/perf		-doc
+dev-vcs/git		webdav curl
+net-misc/curl		kerberos telnet
+net-misc/iputils	arping tracepath
 sys-devel/gettext	-git
-app-emulation/qemu	aio caps curl ncurses png python threads uuid vhost-net virtfs vnc -xkb qemu_softmmu_targets_x86_64 qemu_softmmu_targets_aarch64
-
-# python3 problems
-app-portage/gentoolkit python_single_target_python3_6
-app-portage/repoman python_single_target_python3_6
-sys-apps/portage python_single_target_python3_6
-
-# python3 only
-dev-util/dwarves python_single_target_python3_6
-dev-util/gdbus-codegen python_single_target_python3_6
-dev-util/glib-utils python_single_target_python3_6
-net-fs/samba python_single_target_python3_6
-sys-libs/talloc python_single_target_python3_6
-sys-libs/tdb python_single_target_python3_6
-sys-libs/tevent python_single_target_python3_6
 
 sys-apps/gptfdisk -icu
 
-# for profile migration
+# for profile migration, needs to be enabled despite the fact it's
+# enabled by default in the ebuild, because berkdb is disabled
+# globally in make.defaults.
 sys-libs/gdbm berkdb
 
-dev-vcs/git -pcre-jit -perl -iconv
+dev-vcs/git -perl -iconv
 
-net-analyzer/nmap ncat -lua
+# symlink: to add a link between ncat and nc
+net-analyzer/nmap ncat -system-lua symlink
 
 # removes mta dependencies
 app-admin/sudo -sendmail
 
-# use lzma which is the default on non-gentoo systems, avoid pulling in gnutls
-sys-apps/systemd build curl gcrypt idn libidn2 lzma -ssl
+# disable hybrid cgroup as we use the unified mode now
+# use lzma which is the default on non-gentoo systems, enable selinux,
+sys-apps/systemd -cgroup-hybrid curl idn lzma selinux
 net-libs/libmicrohttpd -ssl
 
 # disable kernel config detection and module building
 net-firewall/ipset -modules
-
-dev-lang/spidermonkey minimal
 
 # do not pull in x11-misc/shared-mime-info
 dev-libs/glib -mime
@@ -71,13 +57,10 @@ net-nds/openldap minimal sasl
 sys-libs/glibc nscd
 
 # disable database build because otherwise it tries to generate a database in /etc
-dev-libs/cyrus-sasl kerberos -berkdb -gdbm
+dev-libs/cyrus-sasl kerberos -gdbm
 
 # don't build manpages for sssd
-sys-auth/sssd -python samba kerberos gssapi ssh sudo
-
-# needed for realmd build
-sys-auth/polkit introspection
+sys-auth/sssd -python samba kerberos gssapi ssh sudo selinux
 
 # enable logging command-line options in update_engine
 dev-cpp/glog gflags
@@ -86,7 +69,8 @@ dev-cpp/glog gflags
 sys-fs/quota rpc
 
 # Don't bother building portage w/xattr, we don't need XATTR_PAX
-sys-apps/portage -xattr
+# Disable rsync-verify to avoid pulling in more deps.
+sys-apps/portage -xattr -rsync-verify
 
 # Enable -M and -Z flags; -M is used by mayday
 sys-process/lsof rpc selinux
@@ -101,11 +85,21 @@ sys-apps/man-db -nls
 # Disable zstd to avoid adding it to prod images until something needs it
 sys-fs/btrfs-progs -zstd
 
+# Enable SELinux for all targets
+coreos-base/coreos          selinux
+sys-apps/dbus               selinux
+
+# Enable SELinux for coreutils
+sys-apps/coreutils          selinux
+
+# Enable SELinux for tar
+app-arch/tar                selinux
+
+# Enable SELinux for docker-runc
+app-emulation/docker-runc selinux
+
 # enable regular expression processing in jq
 app-misc/jq oniguruma
-
-# Disable sse2 from CPU_FLAGS_X86 to avoid config error around simd
-net-misc/rsync -cpu_flags_x86_sse2
 
 # Don't read the firmware config from /etc/portage/savedconfig/
 sys-kernel/coreos-firmware -savedconfig
@@ -119,3 +113,48 @@ net-libs/nghttp2 -cxx
 
 # These (qmanifest and qtegrity) are new tools and they pull even more dependencies.
 app-portage/portage-utils -qmanifest -qtegrity
+
+# Disable unnecessary regedit in samba to minimize the package size.
+net-fs/samba -regedit
+
+# Drop extra dependencies
+sys-libs/ldb -lmdb -python
+
+# Enable nftables backend for the iptables instead of legacy backend
+net-firewall/iptables nftables
+
+# Install `perl` with a minimal set of dependencies
+dev-lang/perl minimal
+
+# Remove support for GObject introspection
+sys-auth/polkit -introspection
+
+# enables ELF support to e.g. allow tc to handle BPF filters.
+sys-apps/iproute2 elf
+
+# Enable su for shadow, because shadow >= 4.11 does not have it by default.
+# Ideally util-linux should have the su binary, but that is currently not
+# possible, because of a bunch of additional dependencies in SDK like
+# pam_sssd in baselayout.
+#
+# Disable su for util-linux to avoid conflict with sys-apps/shadow, which
+# has its own su binary.
+sys-apps/shadow su
+sys-apps/util-linux -su
+
+# Enable kerberos support for NFS
+net-fs/nfs-utils kerberos nfsv41 nfsv4 junction ldap libmount nfsdcld uuid
+net-libs/libtirpc kerberos
+
+# Disable enabled-by-default support for 16-bit characters, we didn't
+# need it before, so we don't need it now. Enable unicode support, as
+# glib requires it now.
+dev-libs/libpcre2 -pcre16 unicode
+
+# Disable extra stuff for tcpdump, there was no explanation why it was
+# enabled by upstream. Samba was enabled to make some tests pass. But
+# smi and ssl, no clue.
+net-analyzer/tcpdump -ssl -smi -samba
+
+# selinux: to find files with a particular SElinux label
+sys-apps/findutils selinux

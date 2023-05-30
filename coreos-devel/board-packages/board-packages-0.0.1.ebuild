@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
-EAPI=5
+EAPI=7
 
 DESCRIPTION="Meta ebuild for building all binary packages."
 HOMEPAGE="http://coreos.com/docs/sdk/"
@@ -21,19 +21,19 @@ DEPEND=""
 RDEPEND="
 	amd64? (
 		app-emulation/open-vm-tools
-		app-emulation/wa-linux-agent
 		coreos-base/coreos-oem-gce
-		coreos-base/flatcar-eks
 		coreos-base/nova-agent-container
 		coreos-base/nova-agent-watcher
-		dev-lang/python-oem
-		x11-drivers/nvidia-drivers
 	)
 	arm64? (
 		sys-boot/grub
-		sys-firmware/edk2-ovmf
+		sys-firmware/edk2-ovmf-bin
 	)
 	app-emulation/amazon-ssm-agent
+	app-emulation/wa-linux-agent
 	coreos-base/coreos
 	coreos-base/coreos-dev
+	coreos-base/flatcar-eks
+	dev-lang/python-oem
+	x11-drivers/nvidia-drivers
 	"

@@ -1,19 +1,19 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=5
-CROS_WORKON_PROJECT="flatcar-linux/update_engine"
-CROS_WORKON_REPO="git://github.com"
-AUTOTOOLS_AUTORECONF=1
+EAPI=7
+CROS_WORKON_PROJECT="flatcar/update_engine"
+CROS_WORKON_REPO="https://github.com"
 
 if [[ "${PV}" == 9999 ]]; then
 	KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 else
-	CROS_WORKON_COMMIT="312ab260fce283e84635b73d92dd6d526d1e3d96" # flatcar-master
+	CROS_WORKON_COMMIT="c6f566d47d8949632f7f43871eb8d5c625af3209" # flatcar-master
 	KEYWORDS="amd64 arm64"
 fi
 
-inherit autotools-utils flag-o-matic toolchain-funcs cros-workon systemd
+TMPFILES_OPTIONAL=1
+inherit autotools flag-o-matic toolchain-funcs cros-workon systemd tmpfiles
 
 DESCRIPTION="CoreOS OS Update Engine"
 HOMEPAGE="https://github.com/coreos/update_engine"
@@ -30,6 +30,7 @@ RDEPEND="!coreos-base/coreos-installer
 	dev-cpp/glog[gflags]
 	dev-libs/dbus-glib
 	dev-libs/glib
+	dev-libs/libsodium
 	dev-libs/libxml2
 	dev-libs/openssl
 	dev-libs/protobuf:=
@@ -37,8 +38,15 @@ RDEPEND="!coreos-base/coreos-installer
 	net-misc/curl
 	>=sys-apps/seismograph-2.2.0
 	sys-fs/e2fsprogs"
+BDEPEND="dev-util/glib-utils"
 DEPEND="dev-cpp/gtest
+	${BDEPEND}
 	${RDEPEND}"
+
+src_prepare() {
+	default
+	eautoreconf
+}
 
 src_configure() {
 	# Disable PIE when building for the SDK, this works around a bug that
@@ -53,24 +61,30 @@ src_configure() {
 	# Work around new gdbus-codegen output.
 	append-flags -Wno-unused-function
 
-	local myeconfargs=(
+	local myconf=(
 		$(use_enable cros-debug debug)
 		$(use_enable delta_generator)
 	)
 
-	autotools-utils_src_configure
+	if tc-is-cross-compiler; then
+		# Override glib-genmarshal path
+		local build_pkg_config="$(tc-getBUILD_PROG PKG_CONFIG pkg-config)"
+		myconf+=(GLIB_GENMARSHAL="$("${build_pkg_config}" --variable=glib_genmarshal glib-2.0)")
+	fi
+
+	econf "${myconf[@]}"
 }
 
 src_test() {
 	if use cros_host; then
-		autotools-utils_src_test
+		default
 	else
 		ewarn "Skipping tests on cross-compiled target platform..."
 	fi
 }
 
 src_install() {
-	autotools-utils_src_install
+	default
 
 	if use symlink-usr; then
 		dosym sbin/flatcar-postinst /usr/postinst
@@ -89,5 +103,5 @@ src_install() {
 	doins com.coreos.update1.conf
 
 	# Install rule to remove old UpdateEngine.conf from /etc
-	systemd_dotmpfilesd "${FILESDIR}"/update-engine.conf
+	dotmpfiles "${FILESDIR}"/update-engine.conf
 }

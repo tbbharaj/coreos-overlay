@@ -2,19 +2,21 @@
 # Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI="5"
-CROS_WORKON_PROJECT="flatcar-linux/init"
+EAPI=7
+CROS_WORKON_PROJECT="flatcar/init"
 CROS_WORKON_LOCALNAME="init"
-CROS_WORKON_REPO="git://github.com"
+CROS_WORKON_REPO="https://github.com"
 
 if [[ "${PV}" == 9999 ]]; then
 	KEYWORDS="~amd64 ~arm ~arm64 ~x86"
 else
-	CROS_WORKON_COMMIT="82a878b1cc2a0d0c41630017b8fe68b33893bf15" # flatcar-master
+	CROS_WORKON_COMMIT="17224c8d6f71b17676bbcf34919072fb67a6bf4c" # flatcar-master
 	KEYWORDS="amd64 arm arm64 x86"
 fi
 
-inherit cros-workon systemd
+PYTHON_COMPAT=( python3_{6..10} )
+
+inherit cros-workon systemd python-any-r1
 
 DESCRIPTION="Init scripts for CoreOS"
 HOMEPAGE="http://www.coreos.com/"
@@ -32,7 +34,7 @@ DEPEND="
 	net-misc/openssh
 	net-nds/rpcbind
 	!coreos-base/oem-service
-	test? ( dev-lang/python:2.7 )
+	test? ( ${PYTHON_DEPS} )
 	"
 RDEPEND="${DEPEND}
 	app-admin/logrotate
@@ -50,4 +52,10 @@ src_install() {
 
 	# Enable some services that aren't enabled elsewhere.
 	systemd_enable_service rpcbind.target rpcbind.service
+
+	# Create compatibility symlinks in case /usr/lib64/ instead of /usr/lib/ was used
+	local compat
+	for compat in modules flatcar coreos ; do
+		dosym "../lib/${compat}" "/usr/lib64/${compat}"
+	done
 }
